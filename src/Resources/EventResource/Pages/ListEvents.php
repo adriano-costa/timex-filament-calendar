@@ -25,12 +25,30 @@ class ListEvents extends ListRecords
 
     protected function getTableQuery(): Builder
     {
+        $query = parent::getTableQuery();
+
         if (in_array('participants',\Schema::getColumnListing(self::getEventTableName()))){
-            return parent::getTableQuery()
-                ->where('organizer','=',\Auth::id())
-                ->orWhereJsonContains('participants', \Auth::id());
-        }else{
-            return parent::getTableQuery();
+            $query->where('organizer','=',\Auth::id());
+            $this->filterByParticipants($query);
         }
+
+        return $query;
+    }
+
+    private function filterByParticipants(Builder $query): Builder
+    {
+        if($this->checkCurrentSqlDriver('sqlite')){
+            return $query->orWhere('participants','like', '%"'.\Auth::id().'"%');        
+        }
+
+        return $query->orWhereJsonContains('participants', \Auth::id());
+    }
+
+    private function checkCurrentSqlDriver(string $driver): bool
+    {
+        $connection = config('database.default');
+        $currentDriver = config("database.connections.{$connection}.driver");
+
+        return $currentDriver == $driver;
     }
 }

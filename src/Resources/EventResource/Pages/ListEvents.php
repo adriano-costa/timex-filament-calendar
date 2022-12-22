@@ -37,18 +37,21 @@ class ListEvents extends ListRecords
 
     private function filterByParticipants(Builder $query): Builder
     {
-        if($this->checkCurrentSqlDriver('sqlite')){
-            return $query->orWhere('participants','like', '%"'.\Auth::id().'"%');        
+        if ($this->checkSqlDriver($query, 'sqlite')) {
+            return $query->orWhere('participants', 'like', '%"'.\Auth::id().'"%');
         }
 
         return $query->orWhereJsonContains('participants', \Auth::id());
     }
 
-    private function checkCurrentSqlDriver(string $driver): bool
+    private function checkSqlDriver(Builder $query, string $driver): bool
     {
-        $connection = config('database.default');
-        $currentDriver = config("database.connections.{$connection}.driver");
+        /**
+         * @var $connection Illuminate\Database\Connection
+         */
+        $connection = $query->getQuery()->connection;
+        $currentDriver = $connection->getConfig()['driver'];
 
-        return $currentDriver == $driver;
+        return $currentDriver === $driver;
     }
 }
